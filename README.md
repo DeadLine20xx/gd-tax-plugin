@@ -20,5 +20,5 @@ https://greasyfork.org/scripts/443095-gd-tax-plugin/code/gd-tax-plugin.user.js
 - [X] 将excel中的登录信息存储到浏览器数据库，直接在浏览器搜索，不用打开excel。
 - [X] 登录后在首页显示常用图标，无需每个客户都添加。
 
-# License
+## License
 [MIT © GREENYvY](./LICENSE)
