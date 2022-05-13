@@ -14,6 +14,11 @@
 ### 2. 安装脚本
 https://greasyfork.org/scripts/443095-gd-tax-plugin/code/gd-tax-plugin.user.js
 
+# :warning: excel的数据格式
+- 工作表名：客户信息表
+- 标题名：公司名称，统一信用代码，实名账号，密码
+![excel的数据格式](./sample.png)
+
 ## Todo
 - [X] 跳过通知框，切换到密码登录界面。
 - [X] 在excel中复制登录信息，然后在登录框粘贴自动解析填充。
