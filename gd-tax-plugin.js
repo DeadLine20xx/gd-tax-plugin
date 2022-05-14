@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         gd-tax-plugin
+// @name         广东电子税局插件
 // @namespace    http://tampermonkey.net/
 // @version      1.0.0
-// @description  guangdong tax plugin
+// @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
 // @match        https://etax.guangdong.chinatax.gov.cn/*
