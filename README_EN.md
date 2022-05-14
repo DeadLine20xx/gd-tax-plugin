@@ -1,13 +1,13 @@
 # gd-tax-plugin
 [中文说明](README.md)
 
-## What?
+## Introduction
 A guangdong.chinatax.gov.cn plugin (Base on TamperMonkey)
 
-## Why?
+## Background
 Developed for the financial accountant's wife to reduce her workload.
 
-## How?
+## Usage
 ### 1. Install TamperMonkey（360/EDGE/Chrome...）
 Serach by yourself.(For Chinese friends, it is recommended to use the edge browser).
 
