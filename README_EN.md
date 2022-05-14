@@ -26,4 +26,4 @@ https://greasyfork.org/scripts/443095-gd-tax-plugin/code/gd-tax-plugin.user.js
 - [X] After logging in, common icons are displayed on the home page, and each customer does not need to add them.
 
 # License
-[MIT © GREENYvY](./LICENSE)
+[MIT © GREENYYY](./LICENSE)

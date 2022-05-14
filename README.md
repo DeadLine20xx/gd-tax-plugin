@@ -26,4 +26,4 @@ https://greasyfork.org/scripts/443095-gd-tax-plugin/code/gd-tax-plugin.user.js
 - [X] 登录后在首页显示常用图标，无需每个客户都添加。
 
 # License
-[MIT © GREENYvY](./LICENSE)
+[MIT © GREENYYY](./LICENSE)
