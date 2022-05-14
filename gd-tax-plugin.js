@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         广东电子税局插件
+// @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
 // @version      1.0.0
 // @description  广东电子税局多账号管理插件
