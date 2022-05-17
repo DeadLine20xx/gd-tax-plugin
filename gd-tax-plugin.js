@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
+// @version      1.0.1
 // @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
@@ -11,7 +11,7 @@
 // @grant        GM_getValue
 // @grant        GM_listValues
 // @grant        GM_deleteValue
-// @require      https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.core.min.js
+// @require      https://cdn.staticfile.org/xlsx/0.10.0/xlsx.core.min.js
 // ==/UserScript==
 
 /* -------------------------- 搜索框库代码 -------------------------- */
