@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
@@ -35,10 +35,10 @@ $.fn.searchInit = function (option) {
             var html = "";
             if (data && data.length > 0) {
                 for (var i = 0; i < data.length && i < 20; i++) {
-                    html += '<li>' + data[i].name + "</li>"
+                    html += '<li style="position: relative; z-index:999; background-color: white;>' + data[i].name + "</li>"
                 }
             } else {
-                html += '<li class="searchSelectorEmpty">' + emptyTips + "</li>"
+                html += '<li class="searchSelectorEmpty" style="position: relative; z-index:999; background-color: white;>' + emptyTips + "</li>"
             }
             $this.find(".searchSelectorList").empty().append(html)
         }
@@ -103,9 +103,9 @@ $.fn.updatesearchSelectorList = function (data, emptyTips, callback) {
     var html = "";
     if (data && data.length > 0) {
         for (var i = 0; i < data.length; i++)
-            html += '<li>' + data[i].name + "</li>";
+            html += '<li style="position: relative; z-index:999; background-color: white;">' + data[i].name + "</li>";
     } else {
-        html += '<li class="searchSelectorEmpty">' + emptyTips + "</li>";
+        html += '<li class="searchSelectorEmpty" style="position: relative; z-index:999; background-color: white;">' + emptyTips + "</li>";
     }
     $this.find(".searchSelectorList").html(html).show();
 
