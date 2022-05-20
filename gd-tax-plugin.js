@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
-// @version      1.0.2
+// @version      1.0.3
 // @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
@@ -222,20 +222,27 @@ function read_workbook_from_local_file(file, callback) {
         }
 
         /* 解析数据。并存入数据库。 */
+        var count = 0;
+        var re = RegExp("^[A-Za-z0-9]{18}$");
         accountData.forEach(data => {
             var ds = data.split(",");
-            write_database([
-                ds[title.indexOf("公司名称")],      // 公司名称
-                ds[title.indexOf("统一信用代码")],   // 统一信用代码
-                ds[title.indexOf("实名账号")],      // 账户名
-                ds[title.indexOf("密码")]          // 密码
-            ]);
+            if (ds[title.indexOf("统一信用代码")]) {
+                if (re.test(ds[title.indexOf("统一信用代码")].replace(/[ ]|[\r\n]/g,""))) {
+                    write_database([
+                        ds[title.indexOf("公司名称")],      // 公司名称
+                        ds[title.indexOf("统一信用代码")],   // 统一信用代码
+                        ds[title.indexOf("实名账号")],      // 账户名
+                        ds[title.indexOf("密码")]          // 密码
+                    ]);
+                    count++;
+                }
+            }
         });
 
         /* 回调函数，继续处理。 */
         if (typeof (callback) == "function") callback(e);
 
-        alert("导入数据库成功！");
+        alert("成功导入 " + count + " 个数据！");
     };
 
     reader.readAsBinaryString(file);
