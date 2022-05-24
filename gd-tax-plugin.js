@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
-// @version      1.0.3
+// @version      1.0.2
 // @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
@@ -13,6 +13,80 @@
 // @grant        GM_deleteValue
 // @require      https://cdn.staticfile.org/xlsx/0.10.0/xlsx.core.min.js
 // ==/UserScript==
+
+//excel坐标
+function getExcelPos(row, col) {
+    var pos = ""
+
+    while (col) {
+        if (col <= 26) {
+            pos += String.fromCharCode(65+col-1);
+            break;
+        } else {
+            pos += 'A';
+            col -= 26;
+        }
+    }
+    pos += row + '';
+    return pos;
+}
+
+// csv转sheet对象
+function csv2sheet(csv) {
+	var sheet = {}; // 将要生成的sheet
+	row = csv.split('\n');
+	row.forEach(function(r, i) {
+		col = r.split(',');
+		if(i == 0) sheet['!ref'] = 'A1:'+ getExcelPos(row.length, col.length);
+		col.forEach(function(val, j) {
+			sheet[getExcelPos(i+1, j+1)] = {v: val};
+		});
+	});
+	return sheet;
+}
+
+// 将一个sheet转成最终的excel文件的blob对象，然后利用URL.createObjectURL下载
+function sheet2blob(sheet, sheetName) {
+    sheetName = sheetName || 'sheet1';
+    var workbook = {
+        SheetNames: [sheetName],
+        Sheets: {}
+    };
+    workbook.Sheets[sheetName] = sheet; // 生成excel的配置项
+
+    var wopts = {
+        bookType: 'xlsx', // 要生成的文件类型
+        bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+        type: 'binary'
+    };
+    var wbout = XLSX.write(workbook, wopts);
+    var blob = new Blob([s2ab(wbout)], {
+        type: "application/octet-stream"
+    }); // 字符串转ArrayBuffer
+    function s2ab(s) {
+        var buf = new ArrayBuffer(s.length);
+        var view = new Uint8Array(buf);
+        for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
+    }
+    return blob;
+}
+
+function openDownloadDialog(url, saveName) {
+    if (typeof url == 'object' && url instanceof Blob) {
+        url = URL.createObjectURL(url); // 创建blob地址
+    }
+    var aLink = document.createElement('a');
+    aLink.href = url;
+    aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+    var event;
+    if (window.MouseEvent) event = new MouseEvent('click');
+    else {
+        event = document.createEvent('MouseEvents');
+        event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+    }
+    aLink.dispatchEvent(event);
+}
 
 /* -------------------------- 搜索框库代码 -------------------------- */
 /**
@@ -228,12 +302,15 @@ function read_workbook_from_local_file(file, callback) {
             var ds = data.split(",");
             if (ds[title.indexOf("统一信用代码")]) {
                 if (re.test(ds[title.indexOf("统一信用代码")].replace(/[ ]|[\r\n]/g,""))) {
-                    write_database([
+                    write_database(
+                        "account",
                         ds[title.indexOf("公司名称")],      // 公司名称
-                        ds[title.indexOf("统一信用代码")],   // 统一信用代码
-                        ds[title.indexOf("实名账号")],      // 账户名
-                        ds[title.indexOf("密码")]          // 密码
-                    ]);
+                        [
+                            ds[title.indexOf("统一信用代码")],  // 统一信用代码
+                            ds[title.indexOf("实名账号")],      // 账户名
+                            ds[title.indexOf("密码")]          // 密码
+                        ]
+                    );
                     count++;
                 }
             }
@@ -254,23 +331,27 @@ function read_workbook_from_local_file(file, callback) {
 * @param data: 写入数据库的数据
 * @return void
 */
-function write_database(data) {
-    var key = data.shift();
-    if (!key) return ;
-    // console.log(key);
-    // console.log(data);
-    GM_setValue(key, data);
+function write_database(type, key, data) {
+    // var key = data.shift();
+    // if (!key) return ;
+    var keys = GM_getValue(type);
+    if (!keys) keys = {};
+    keys[key] = data;
+    console.log(type, keys);
+    GM_setValue(type, keys);
 }
 
 /**
 * 删除Tampermonkey的GM数据库
 * @return void
 */
-function delete_database() {
-    if (confirm("【!!!】确认清空数据库吗？")) {
+function delete_database(del_key, skip_confirm) {
+    if (skip_confirm || confirm("【!!!】确认清空数据库吗？")) {
         var keys = GM_listValues();
+        console.log(keys, del_key);
         keys.forEach(key => {
-            GM_deleteValue(key);
+            if (del_key === key)
+                GM_deleteValue(key);
         });
     }
 }
@@ -280,21 +361,34 @@ function delete_database() {
 * @param data: 从数据库中搜索的键值
 * @return void
 */
-function searchDatabase(data) {
-    var keys = GM_listValues();
-    keys.forEach(key => {
-        if (key.indexOf(data) >= 0) {
-            /* 从数据库读取数据 */
-            var accountData = GM_getValue(key);
-            // console.log(key);
-            // console.log(accountData);
-
-            /* 将信息填充到登录框中 */
-            document.getElementById("shxydmOrsbh").value = accountData[0];
-            document.getElementById("userNameOrSjhm").value = accountData[1];
-            document.getElementById("passWord").value = accountData[2];
+function searchDatabase(type, data, callback) {
+    var keys = GM_getValue(type);
+    if (keys) {
+        for (var key in keys) {
+            if (key.indexOf(data) >= 0) {
+                if (callback)
+                    callback(keys[key]);
+                return keys[key];
+            }
         }
-    });
+    }
+}
+
+function fillAccountData(accountData) {
+        document.getElementById("shxydmOrsbh").value = accountData[0];
+        document.getElementById("userNameOrSjhm").value = accountData[1];
+        document.getElementById("passWord").value = accountData[2];
+}
+
+function getAllCompany() {
+    var data = []
+    var keys = GM_getValue("account");
+    if (keys) {
+        for (var key in keys) {
+            data.push({"name": key});
+        }
+    }
+    return data;
 }
 /* ------------------------------------------------------------------------- */
 
@@ -303,6 +397,7 @@ function searchDatabase(data) {
     'use strict';
 
     var url = document.location.toString();
+    console.log(url);
     if (url === "https://etax.guangdong.chinatax.gov.cn/xxmh/" ||
         url === "https://etax.guangdong.chinatax.gov.cn/xxmh/html/index.html")
     {
@@ -326,9 +421,7 @@ function searchDatabase(data) {
             /* 填充登录信息 */
             if (accountData.length == 3) {
                 setTimeout(function(){
-                    document.getElementById("shxydmOrsbh").value = accountData[0];
-                    document.getElementById("userNameOrSjhm").value = accountData[1];
-                    document.getElementById("passWord").value = accountData[2];
+                    fillAccountData(accountData);
                 }, 100);
             }
         }
@@ -342,7 +435,7 @@ function searchDatabase(data) {
         /* 按钮：删除数据库，用于清除缓存 */
         $('<button id="clear_db" style="font-size: 14px;width: 100px;">清除缓存</button>').insertBefore($(".layui-row .layui-col-md3:first"));
         $("#clear_db").click(function(e) {
-            delete_database();     // 删除数据库
+            delete_database("account");     // 删除数据库
             $("#file").val("");    // 清空打开文件框的值，下次打开同一文件时依然解析。
             data = [];             // 清空缓存
         })
@@ -367,11 +460,8 @@ function searchDatabase(data) {
             /* 读取Excel文件 */
             read_workbook_from_local_file(files[0], function () {
                 /* 每次更新数据库都需要刷新data数组 */
-                data = [];
-                var keys = GM_listValues();
-                keys.forEach(key => {
-                    data.push({"name": key});
-                });
+                data = getAllCompany();
+                console.log(data.length, data);
 
                 /* 删除文件选择框的值，下次打开同一文件依然解析。 */
                 $("#file").val("");
@@ -382,13 +472,10 @@ function searchDatabase(data) {
         $('<div id="search" style="font-size: 14px;"></div>').insertBefore($(".layui-row .layui-col-md3:first"));
 
         /* 搜索框控制代码 */
+        console.log(GM_listValues());
 
         /* 初始化data数组（存放搜索关键字：公司名称） */
-        data = [];
-        var keys = GM_listValues();
-        keys.forEach(key => {
-            data.push({"name": key});
-        });
+        data = getAllCompany();
 
         /* 搜索框初始化 */
         $('#search').searchInit();
@@ -440,14 +527,18 @@ function searchDatabase(data) {
                 let keyCode = theEvent.keyCode || theEvent.which || theEvent.charCode;
                 /* 回车选择第一个搜索结果 */
                 if (keyCode == 13) {
-                    searchDatabase(searchData[0]["name"]);
+                    searchDatabase("account", searchData[0]["name"], function (accountData) {
+                        fillAccountData(accountData);
+                    });
                 }
             }
         });
 
         /* 绑定下拉框点击事件，选择某家公司时，自动填充账户信息。 */
         $('#search').searchSelectorClick(function () {
-            searchDatabase($(".searchInput:first").val());
+            searchDatabase("account", $(".searchInput:first").val(), function (accountData) {
+                fillAccountData(accountData);
+            });
         });
     } else if (url === "https://etax.guangdong.chinatax.gov.cn/xxmh/html/index_login.html") {
         /* 功能4：添加自定义图标。无需每个客户都添加。 */
@@ -482,5 +573,149 @@ function searchDatabase(data) {
             addItem = $('#topTabs > div.layui-tab-content > div:nth-child(3) > div > div > div:nth-child(4)').clone(true);
             $('#cygnsz').after(addItem);
         }, 100);
+    } else if (url.indexOf("/xxmh/service/um/cxpt/4thLvlFunTabsInit.do?cdId=961&gnDm=userMessage.qyxx&gdslxDm=3") != -1) {
+        $('<button id="download" style="font-size: 14px; margin-left: 10px;">保存到EXCEL</button>').insertAfter($("#gnmc li")[$("#gnmc li").length-1]);
+        $("#download").click(function(e) {
+            $("#gnmc").find("li").each(function () {
+                if ($(this).hasClass('layui-this')) {
+                    var csv = searchDatabase("nsrxx", $(this).text());
+                    if(csv)
+                        openDownloadDialog(sheet2blob(csv2sheet(csv)), "纳税人信息.xlsx");
+                    else
+                        alert("当前脚本没获取到数据，请稍后再重试点击！");
+                }
+            });
+        });
+
+        /* 每次打开先清空数据库 */
+        delete_database("nsrxx", true);
+    } else if (url.indexOf("/web-tycx/sscx/yhscx/swdjcx/jcxx/dwnsrxx.jsp?sxqybz=Y&gdlxbz=GS") != -1) {
+        /* 抓取信息 */
+        setTimeout(function(){
+            var csv = ""
+            var jbxx_title = "";
+            var jbxx = "";
+            var count = 0;
+            $('#dwnsrjbxx .searchTable:first table:eq(0)').find("tr").each(function () {
+                $(this).find('td').each(function () {
+                    if (!(count % 2)) jbxx_title += $(this).text().replace('：', '') + ',';
+                    else jbxx += $(this).text() + ',';
+                    count++;
+                });
+            });
+            csv += jbxx_title + '\n' + jbxx + '\n\n';
+
+            var title = ""
+            var djztxx_title = "";
+            var djztxx = "";
+            $('#dwnsrjbxx .searchTable:first table:eq(1)').find("tr").each(function () {
+                $(this).find('th').each(function () {
+                    title += $(this).text() + ',';
+                });
+                $(this).find('td').each(function () {
+                    djztxx += $(this).text() + ',';
+                });
+                if ($(this).find('td').length)
+                    djztxx_title += title;
+            });
+            csv += djztxx_title + '\n' + djztxx + '\n\n';
+
+            var tz_title = "";
+            var tz = "";
+            $('#dwnsrjbxx .searchTable:first table:eq(2)').find("tr").each(function () {
+                if ($(this).find('th').length) {
+                    tz_title += "注册资本,";
+                    tz += ',';
+                }
+                $(this).find('th').each(function () {
+                    tz_title += $(this).text() + ',';
+                });
+                $(this).find('td').each(function () {
+                    tz += $(this).text() + ',';
+                });
+            });
+            $('#dwnsrjbxx .searchTable:first table:eq(3)').find("tr").each(function () {
+                if ($(this).find('th').length) {
+                    tz_title += "投资总额,";
+                    tz += ',';
+                }
+                $(this).find('th').each(function () {
+                    tz_title += $(this).text() + ',';
+                });
+                $(this).find('td').each(function () {
+                    tz += $(this).text() + ',';
+                });
+            });
+            $('#dwnsrjbxx .searchTable:first table:eq(4)').find("tr").each(function () {
+                $(this).find('th').each(function () {
+                    tz_title += $(this).text() + ',';
+                });
+                $(this).find('td').each(function () {
+                    tz += $(this).text() + ',';
+                });
+            });
+            csv += tz_title + '\n' + tz + '\n\n';
+
+            var jg_title = "";
+            var jg = ",";
+            $('#dwnsrjbxx .searchTable:first table:eq(6)').find("tr").each(function () {
+                $(this).find('th').each(function () {
+                    jg_title += $(this).text() + ',';
+                });
+                $(this).find('td').each(function () {
+                    jg += $(this).text() + ',';
+                });
+            });
+            count = 0;
+            $('#dwnsrjbxx .searchTable:first table:eq(7)').find("tr").each(function () {
+                $(this).find('th').each(function () {
+                    jg_title += $(this).text() + ',';
+                    jg += ',';
+                });
+                $(this).find('td').each(function () {
+                    if (!(count % 2)) jg_title += $(this).text() + ',';
+                    else jg += $(this).text() + ',';
+                    count++;
+                });
+            });
+            count = 0;
+            $('#dwnsrjbxx .searchTable:first table:eq(8)').find("tr").each(function () {
+                $(this).find('td').each(function () {
+                    if (!(count % 2)) jg_title += $(this).text() + ',';
+                    else jg += $(this).text() + ',';
+                    count++;
+                });
+            });
+            csv += jg_title + '\n' + jg + '\n\n';
+            write_database("nsrxx", "注册信息", csv);
+        }, 1000);
+    } else if (url.indexOf("/xxmh/view/userMessage/qyxx/djxx/dwnsrxx.jsp?gdsbz=1") != -1) {
+        /* 抓取信息 */
+        setTimeout(function(){
+            var csv = ""
+            var jbxx_title = "";
+            var jbxx = "";
+            var count = 0;
+            $('#dwnsrjbxx .layui-table:first table:eq(0)').find("tr").each(function () {
+                $(this).find('td').each(function () {
+                    if (!(count % 2)) jbxx_title += $(this).text().replace(':', '') + ',';
+                    else jbxx += $(this).text() + ',';
+                    count++;
+                });
+            });
+            csv += jbxx_title + '\n' + jbxx + '\n\n';
+
+            var swjg_title = "";
+            var swjg = "";
+            $('#dwnsrjbxx .layui-table:first table:eq(3)').find("tr").each(function () {
+                $(this).find('td').each(function () {
+                    if (!(count % 2)) swjg_title += $(this).text().replace(':', '') + ',';
+                    else swjg += $(this).text() + ',';
+                    count++;
+                });
+            });
+            csv += swjg_title + '\n' + swjg + '\n\n';
+            write_database("nsrxx", "登记信息", csv);
+        }, 1000);
     }
 })();
