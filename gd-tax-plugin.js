@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         gd-tax-plugin
 // @namespace    http://tampermonkey.net/
-// @version      1.0.3
+// @version      1.0.4
 // @description  广东电子税局多账号管理插件
 // @author       Dengguiling
 // @license      MIT
@@ -307,8 +307,10 @@ function searchDatabase(data) {
         url === "https://etax.guangdong.chinatax.gov.cn/xxmh/html/index.html")
     {
         /* 跳转到登录页面 */
-        $(".layui-layer-btn2:first").click();
-        $(".loginico:first").click();
+        setTimeout(function(){
+            $(".layui-layer-btn:first").click();
+            $(".loginico:first").click();
+        }, 100);
     }
     else if (url.indexOf("https://etax.guangdong.chinatax.gov.cn/sso/login") == 0)
     {
