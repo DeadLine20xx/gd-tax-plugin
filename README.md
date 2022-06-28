@@ -1,23 +1,23 @@
 # gd-tax-plugin
-[English](README_EN.md)
+![](https://img.shields.io/static/v1?label=version&message=v1.0.4&color=success)
+![](https://img.shields.io/badge/language-JavaSript-brightgreen.svg)
+![](https://img.shields.io/static/v1?label=license&message=MIT&color=blue)
+![](https://img.shields.io/static/v1?label=Baseon&message=Tampermonkey&color=important)
 
-## 简介
-一个广东电子税局插件 (基于 TamperMonkey )
+一个基于Tampermonkey的广东税务系统辅助插件，方便多账号管理（会计）。
+***
 
-## 背景
-为了财务会计的老婆而开发，减轻她的工作量。
+## How to use?
+### 1. Install TamperMonkey（support 360/EDGE/Chrome...）
+安装方法搜索引擎很多，不赘述。(推荐中国的小伙伴使用Edge浏览器，可以直接商店下载安装。)
 
-## 使用方式
-### 1. 安装 TamperMonkey 插件（360/EDGE/Chrome...）
-安装方法搜索引擎很多，不赘述。(推荐中国的小伙伴用Edge浏览器，可以直接商店下载安装。)
-
-### 2. 安装脚本
+### 2. Install Script
 https://greasyfork.org/scripts/443095-gd-tax-plugin/code/gd-tax-plugin.user.js
 
-# :warning: excel的数据格式
+## :warning: excel的数据格式
 - 工作表名：客户信息表
 - 标题名：公司名称，统一信用代码，实名账号，密码
-![excel的数据格式](./sample.png)
+![excel的数据格式](https://github.com/Dengguiling/gd-tax-plugin/blob/master/sample.png)
 
 ## Todo
 - [X] 跳过通知框，切换到密码登录界面。
