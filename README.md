@@ -1,5 +1,5 @@
 # gd-tax-plugin
-![](https://img.shields.io/static/v1?label=version&message=v1.0.4&color=success)
+![](https://img.shields.io/static/v1?label=version&message=v1.0.4&color=red)
 ![](https://img.shields.io/badge/language-JavaSript-brightgreen.svg)
 ![](https://img.shields.io/static/v1?label=license&message=MIT&color=blue)
 ![](https://img.shields.io/static/v1?label=Baseon&message=Tampermonkey&color=important)
